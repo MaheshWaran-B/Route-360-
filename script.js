@@ -15,9 +15,9 @@
 // - TRAVEL MODE (car / bike / public)
 // ====================================================================
 
-// --- Configuration ---
-const TOMTOM_API_KEY = "YOUR_TOMTOM_API_KEY_HERE";
-const OPENWEATHER_API_KEY = "YOUR_OPENWEATHER_API_KEY_HERE";
+// --- Configuration (loaded from config.js) ---
+const TOMTOM_API_KEY = window.CONFIG?.TOMTOM_API_KEY || "";
+const OPENWEATHER_API_KEY = window.CONFIG?.OPENWEATHER_API_KEY || "";
 
 const india_center = [20.5937, 78.9629];
 const INDIA_BOUNDS = {

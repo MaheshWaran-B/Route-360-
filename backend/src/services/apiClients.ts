@@ -2,8 +2,8 @@
 // API Clients – TomTom, OSRM, OpenWeatherMap
 // ====================================================================
 
-const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY || "VzVbcIoLzBiKNpZPVHcpy1XGatfLt9qo";
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "fe37ce75eec1229d5b37aacb9df5ac53";
+const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY || "";
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
 
 // --- Geocoding ---
 
