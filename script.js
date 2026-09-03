@@ -896,6 +896,121 @@ function startDynamicRerouting(startLatLng, endLatLng, endLabel) {
 
 const statusSpan = document.getElementById("tomtom-search-status");
 
+// ====================================================================
+// BACKEND CLIENT (optional – uses /api/routes when backend is running)
+// ====================================================================
+const BACKEND_URL = (window.CONFIG && window.CONFIG.BACKEND_URL) || "http://localhost:3001";
+
+async function backendAvailable() {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${BACKEND_URL}/`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Try to plan the route via the Node.js backend (/api/routes).
+ * Returns null if the backend is unreachable or errors, so the
+ * caller can fall back to the direct browser-API approach.
+ */
+async function tryBackendRoute(startText, endText) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const res = await fetch(`${BACKEND_URL}/api/routes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        origin: startText,
+        destination: endText,
+        mode: selectedTravelMode,
+        priority: selectedPreference,
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.routes || data.routes.length === 0) return null;
+    return data;
+  } catch (err) {
+    console.warn("Backend route planning unavailable, falling back to direct APIs.", err);
+    return null;
+  }
+}
+
+/**
+ * Render routes received from the backend (/api/routes response).
+ * Backend returns routes with riskScore, riskLevel, coordinates, etc.
+ */
+function renderBackendRoutes(data, endLabel) {
+  const startLatLng = data.origin.latLng || [data.origin.lat, data.origin.lon];
+  const endLatLng = data.destination.latLng || [data.destination.lat, data.destination.lon];
+
+  allRouteData = data.routes.map((r) => ({
+    coords: r.coordinates,
+    distanceMeters: r.distanceKm * 1000,
+    durationSec: r.etaMinutes * 60,
+    riskScore: r.riskScore,
+    riskLevel: r.riskLevel,
+    optimScore: r.riskScore, // backend already sorts; keep stable
+    nearIncidents: [],
+    fromBackend: true,
+  }));
+
+  // Backend already ordered best-first; set optimized score by index
+  allRouteData.forEach((r, i) => { r.optimScore = i; });
+
+  activeRouteIndex = 0;
+  const bestRoute = allRouteData[0];
+
+  // Draw best route coloured by risk
+  const polyline = L.polyline(bestRoute.coords, {
+    color: riskColor(bestRoute.riskScore),
+    weight: 6,
+    opacity: 0.8,
+  }).addTo(map);
+  routeSegments.push(polyline);
+
+  // Start/End markers
+  L.marker(startLatLng).addTo(map).bindPopup("Start Location").openPopup();
+  L.marker(endLatLng)
+    .addTo(map)
+    .bindPopup(`Destination: ${endLabel}`)
+    .openPopup();
+
+  map.fitBounds(L.latLngBounds(bestRoute.coords));
+  currentRouteCoords = bestRoute.coords;
+
+  renderRouteCards(allRouteData, 0);
+  updateHazardAlerts([], bestRoute);
+
+  if (statusSpan) {
+    const km = (bestRoute.distanceMeters / 1000).toFixed(1);
+    const min = Math.round(bestRoute.durationSec / 60);
+    statusSpan.innerHTML =
+      `<b>Route (backend / ML):</b> ${km} km, ETA ~${min} min<br/>` +
+      `<b>Risk:</b> ${bestRoute.riskLevel} (${(bestRoute.riskScore * 100).toFixed(0)}%)<br/>` +
+      `<i>${allRouteData.length} route(s) ranked by the Node.js backend.</i>`;
+    statusSpan.style.color = "#198754";
+  }
+
+  // Keep a live watcher refresh of incidents from the browser as well
+  if (routeIncidentWatcher) clearInterval(routeIncidentWatcher);
+  routeIncidentWatcher = setInterval(async () => {
+    await fetchLiveIncidentsForViewport();
+    if (currentRouteCoords && currentRouteCoords.length > 1) {
+      highlightIncidentsNearRoute(currentRouteCoords, 500);
+    }
+  }, 15000);
+}
+
 async function findAndDisplayRoute() {
   const startInput = document.getElementById("tomtom-start-input");
   const endInput = document.getElementById("tomtom-end-input");
@@ -911,6 +1026,21 @@ async function findAndDisplayRoute() {
   }
 
   clearRoute();
+
+  // ---- Try the Node.js backend first (ML risk + optimization server-side) ----
+  if (await backendAvailable()) {
+    if (statusSpan) {
+      statusSpan.textContent = "Planning via Route 360 backend (ML risk engine)...";
+      statusSpan.style.color = "#007bff";
+    }
+    const backendData = await tryBackendRoute(startText, endText);
+    if (backendData && backendData.routes && backendData.routes.length > 0) {
+      await renderBackendRoutes(backendData, endText);
+      return;
+    }
+  }
+
+  // ---- Fallback: direct browser APIs (works even without the backend) ----
 
   // Step 1: Geocode
   if (statusSpan) {

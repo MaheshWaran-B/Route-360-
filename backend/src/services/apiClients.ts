@@ -5,14 +5,18 @@
 const TOMTOM_API_KEY = process.env.TOMTOM_API_KEY || "";
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || "";
 
+async function getJSON(url: string): Promise<any> {
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 // --- Geocoding ---
 
 export async function geocodeWithTomTom(place: string) {
   const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(place)}.json?key=${TOMTOM_API_KEY}&countrySet=IN&limit=1`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.results || data.results.length === 0) return null;
+  const data = await getJSON(url);
+  if (!data || !data.results || data.results.length === 0) return null;
   const best = data.results[0];
   return {
     lat: best.position.lat,
@@ -32,9 +36,8 @@ interface OSRMRoute {
 export async function getOSRMRoute(start: [number, number], end: [number, number]): Promise<OSRMRoute | null> {
   const coordinates = `${start[1]},${start[0]};${end[1]},${end[0]}`;
   const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.code !== "Ok" || !data.routes?.length) return null;
+  const data = await getJSON(url);
+  if (!data || data.code !== "Ok" || !data.routes?.length) return null;
   const route = data.routes[0];
   return {
     coords: route.geometry.coordinates.map((p: number[]) => [p[1], p[0]]),
@@ -49,9 +52,8 @@ export async function getOSRMAlternatives(
 ): Promise<OSRMRoute[]> {
   const coordinates = `${start[1]},${start[0]};${end[1]},${end[0]}`;
   const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&alternatives=true`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.code !== "Ok" || !data.routes?.length) return [];
+  const data = await getJSON(url);
+  if (!data || data.code !== "Ok" || !data.routes?.length) return [];
   return data.routes.map((r: any) => ({
     coords: r.geometry.coordinates.map((p: number[]) => [p[1], p[0]]),
     distanceMeters: r.distance,
@@ -65,10 +67,8 @@ export async function fetchTrafficFlow(lat: number, lon: number, zoom = 14) {
   const url =
     `https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/${zoom}/json` +
     `?key=${TOMTOM_API_KEY}&point=${lat},${lon}&unit=kmph`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.flowSegmentData || null;
+  const data = await getJSON(url);
+  return (data && data.flowSegmentData) || null;
 }
 
 // --- TomTom Incidents ---
@@ -85,10 +85,8 @@ export async function fetchIncidents(bbox: BBox) {
   const url =
     `https://api.tomtom.com/traffic/services/5/incidentDetails` +
     `?key=${TOMTOM_API_KEY}&bbox=${bboxStr}&timeValidityFilter=present&language=en-GB`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.incidents || [];
+  const data = await getJSON(url);
+  return (data && data.incidents) || [];
 }
 
 // --- OpenWeatherMap ---
@@ -96,9 +94,7 @@ export async function fetchIncidents(bbox: BBox) {
 export async function fetchWeather(lat: number, lon: number) {
   const url =
     `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  return res.json();
+  return getJSON(url);
 }
 
 export async function fetchWeatherForCoords(lat: number, lon: number) {

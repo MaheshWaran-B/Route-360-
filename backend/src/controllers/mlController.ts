@@ -30,9 +30,12 @@ export async function predictRisk(req: Request, res: Response) {
       wind_speed_ms,
     };
 
-    // Run Python prediction script
-    const scriptPath = path.join(__dirname, "../../ml/predict.py");
-    const pythonProcess = spawn("python", [scriptPath, JSON.stringify(features)]);
+    // Run Python prediction script (pass JSON via stdin to avoid shell quoting issues)
+    // __dirname = backend/dist/controllers -> ../../../ml/predict.py (project root /ml)
+    const scriptPath = path.join(__dirname, "../../../ml/predict.py");
+    const pythonProcess = spawn("python", [scriptPath], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
 
     let stdout = "";
     let stderr = "";
@@ -44,6 +47,10 @@ export async function predictRisk(req: Request, res: Response) {
     pythonProcess.stderr.on("data", (data: Buffer) => {
       stderr += data.toString();
     });
+
+    // Write features JSON to stdin
+    pythonProcess.stdin.write(JSON.stringify(features));
+    pythonProcess.stdin.end();
 
     return new Promise<void>((resolve) => {
       pythonProcess.on("close", (code) => {

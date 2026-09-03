@@ -12,6 +12,12 @@ dist/
 # Config with secrets
 config.js
 ml/model/
+ml/dataset/
+ml/notebooks/
+
+# Backend build artifacts
+backend/dist/
+backend/.env
 
 # OS files
 Thumbs.db

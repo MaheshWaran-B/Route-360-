@@ -9,13 +9,24 @@ import json
 import pickle
 import os
 
+def read_input():
+    # Prefer CLI arg, then fall back to stdin (robust to shell quoting quirks)
+    if len(sys.argv) >= 2:
+        return sys.argv[1]
+    try:
+        return sys.stdin.read()
+    except Exception:
+        return ""
+
+
 def main():
-    if len(sys.argv) < 2:
+    raw = read_input().strip()
+    if not raw:
         print(json.dumps({"error": "No input features provided"}))
         sys.exit(1)
 
     try:
-        input_data = json.loads(sys.argv[1])
+        input_data = json.loads(raw)
     except json.JSONDecodeError:
         print(json.dumps({"error": "Invalid JSON input"}))
         sys.exit(1)
