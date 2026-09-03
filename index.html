@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Route 360 – Safe Route Planner</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="map-container">
+      <!-- ROUTE CONTROLS (Top-Left) -->
+      <div class="route-controls">
+        <h3>Route 360</h3>
+        <p class="subtitle">Safe + Optimal + Adaptive Route</p>
+
+        <div class="input-group">
+          <label for="tomtom-start-input">Starting Location</label>
+          <input
+            type="text"
+            id="tomtom-start-input"
+            placeholder="e.g., Avadi, Chennai"
+          />
+        </div>
+
+        <div class="input-group">
+          <label for="tomtom-end-input">Destination</label>
+          <input
+            type="text"
+            id="tomtom-end-input"
+            placeholder="e.g., Tidel Park, Guindy"
+          />
+        </div>
+
+        <div class="input-group">
+          <label>Travel Mode</label>
+          <div class="travel-mode-group">
+            <button class="mode-btn active" data-mode="car">Car</button>
+            <button class="mode-btn" data-mode="bike">Bike</button>
+            <button class="mode-btn" data-mode="public">Public</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Route Preference</label>
+          <div class="preference-group">
+            <button class="pref-btn" data-pref="fastest">Fastest</button>
+            <button class="pref-btn active" data-pref="balanced">Balanced</button>
+            <button class="pref-btn" data-pref="safest">Safest</button>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="find-route-btn">Find Safe Route</button>
+          <button id="clear-route-btn">Clear</button>
+        </div>
+
+        <div class="status-box">
+          Status: <span id="tomtom-search-status" class="status-text">Idle</span>
+        </div>
+
+        <button id="report-incident-btn" class="report-btn">Report Incident</button>
+      </div>
+
+      <!-- HAZARD ALERTS (Bottom-Left) -->
+      <div class="hazard-alerts" id="hazard-alerts" style="display: none;">
+        <h4>Hazard Alerts</h4>
+        <div id="hazard-alert-list"></div>
+      </div>
+
+      <!-- ROUTE CARDS (Bottom-Right) -->
+      <div class="route-cards-container" id="route-cards-container" style="display: none;">
+        <h4>Route Options</h4>
+        <div id="route-cards"></div>
+      </div>
+
+      <!-- MAP CONTROLS (Bottom-Right) -->
+      <div class="map-controls">
+        <button id="locate-btn" class="map-ctrl-btn" title="Use My Location">📍</button>
+        <button id="traffic-toggle-btn" class="map-ctrl-btn active" title="Toggle Traffic">🚦</button>
+        <button id="weather-toggle-btn" class="map-ctrl-btn" title="Toggle Weather">🌦️</button>
+      </div>
+
+      <!-- MAP -->
+      <div id="map"></div>
+
+      <!-- INCIDENT REPORT MODAL -->
+      <div class="modal-overlay" id="incident-modal" style="display: none;">
+        <div class="modal-content">
+          <h4>Report an Incident</h4>
+          <div class="input-group">
+            <label>Incident Type</label>
+            <select id="incident-type">
+              <option value="accident">Accident</option>
+              <option value="flood">Flood / Waterlogging</option>
+              <option value="pothole">Pothole</option>
+              <option value="roadblock">Roadblock</option>
+              <option value="animal">Animal on Road</option>
+              <option value="traffic">Heavy Traffic</option>
+              <option value="construction">Road Construction</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Severity</label>
+            <select id="incident-severity">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Location (click map or type)</label>
+            <input type="text" id="incident-location" placeholder="Click map to set location" />
+          </div>
+          <div class="input-group">
+            <label>Description (optional)</label>
+            <textarea id="incident-desc" rows="2" placeholder="Describe what you see..."></textarea>
+          </div>
+          <div class="modal-buttons">
+            <button id="submit-incident-btn" class="submit-btn">Submit Report</button>
+            <button id="cancel-incident-btn" class="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <script type="module" src="voiceprocessor.js"></script>
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
